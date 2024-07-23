@@ -1,7 +1,10 @@
+import Hero from './components/custom/Hero';
+
 function App() {
   return (
     <div>
-      <h1 className="underline text-lg">Hello World!</h1>
+      {/* Hero Section */}
+      <Hero />
     </div>
   );
 }
