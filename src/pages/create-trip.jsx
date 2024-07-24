@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { budgetOptions, travelOptions } from '@/constants/options';
+import { AI_PROMT, budgetOptions, travelOptions } from '@/constants/options';
+import { chatSession } from '@/services/AIModal';
 import { useState } from 'react';
 import GooglePlacesAutocomplete from 'react-google-places-autocomplete';
 import { toast } from 'sonner';
@@ -16,7 +17,7 @@ const CreateTrip = () => {
     });
   };
 
-  const onGenerateTrip = () => {
+  const onGenerateTrip = async () => {
     if (formData?.noOfDays <= 0) {
       toast('Number of days must be greater than zero');
       return;
@@ -31,6 +32,21 @@ const CreateTrip = () => {
       toast('Please fill all details');
       return;
     }
+
+    const FINAL_PROMPT = AI_PROMT.replace(
+      '{location}',
+      formData?.location?.label
+    )
+      .replace('{totalDays}', formData?.noOfDays)
+      .replace('{totalPeople}', formData?.noOfPeople)
+      .replace('{budget}', formData?.budget)
+      .replace('{totalDays}', formData?.noOfDays);
+
+    console.log(FINAL_PROMPT);
+
+    const result = await chatSession.sendMessage(FINAL_PROMPT);
+
+    console.log(result?.response?.text());
   };
 
   return (
