@@ -17,6 +17,7 @@ import { useState } from 'react';
 import GooglePlacesAutocomplete from 'react-google-places-autocomplete';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { FcGoogle } from 'react-icons/fc';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const CreateTrip = () => {
@@ -24,6 +25,8 @@ const CreateTrip = () => {
   const [formData, setFormData] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleInputChange = (name, value) => {
     setFormData({
@@ -47,6 +50,7 @@ const CreateTrip = () => {
       });
 
       setLoading(false);
+      navigate('/view-trip/' + docRef.id);
     } catch (error) {
       console.error('Error saving trip: ', error);
       setLoading(false);

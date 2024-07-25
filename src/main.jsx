@@ -7,6 +7,7 @@ import Header from './components/custom/Header.jsx';
 import { Toaster } from './components/ui/sonner.jsx';
 import './index.css';
 import CreateTrip from './pages/create-trip.jsx';
+import ViewTrip from './pages/view-trip/[tripId]/index.jsx';
 
 const router = createBrowserRouter([
   {
@@ -16,6 +17,10 @@ const router = createBrowserRouter([
   {
     path: '/create-trip',
     element: <CreateTrip />,
+  },
+  {
+    path: '/view-trip/:tripId',
+    element: <ViewTrip />,
   },
 ]);
 
