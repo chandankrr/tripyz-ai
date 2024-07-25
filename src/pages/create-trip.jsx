@@ -9,10 +9,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { AI_PROMT, budgetOptions, travelOptions } from '@/constants/options';
 import { chatSession } from '@/services/AIModal';
+import { db } from '@/services/firebaseConfig';
 import { useGoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import { useState } from 'react';
 import GooglePlacesAutocomplete from 'react-google-places-autocomplete';
+import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { FcGoogle } from 'react-icons/fc';
 import { toast } from 'sonner';
 
@@ -20,12 +23,34 @@ const CreateTrip = () => {
   const [place, setPlace] = useState();
   const [formData, setFormData] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleInputChange = (name, value) => {
     setFormData({
       ...formData,
       [name]: value,
     });
+  };
+
+  const saveAiTrip = async (tripData) => {
+    setLoading(true);
+
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+
+      const docRef = doc(collection(db, 'AiTrips'));
+      await setDoc(docRef, {
+        userSelection: formData,
+        tripData: JSON.parse(tripData),
+        userEmail: user?.email,
+        id: docRef.id,
+      });
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Error saving trip: ', error);
+      setLoading(false);
+    }
   };
 
   const onGenerateTrip = async () => {
@@ -51,6 +76,8 @@ const CreateTrip = () => {
       return;
     }
 
+    setLoading(true);
+
     const FINAL_PROMPT = AI_PROMT.replace(
       '{location}',
       formData?.location?.label
@@ -62,9 +89,18 @@ const CreateTrip = () => {
 
     console.log(FINAL_PROMPT);
 
-    const result = await chatSession.sendMessage(FINAL_PROMPT);
+    try {
+      const result = await chatSession.sendMessage(FINAL_PROMPT);
 
-    console.log(result?.response?.text());
+      console.log(result?.response?.text());
+      setLoading(false);
+      saveAiTrip(result?.response?.text());
+    } catch (error) {
+      console.error('Error generating trip:', error);
+      toast('An error occurred while generating the trip. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const login = useGoogleLogin({
@@ -169,7 +205,13 @@ const CreateTrip = () => {
       </div>
 
       <div className="flex justify-end my-10">
-        <Button onClick={onGenerateTrip}>Generate Trip</Button>
+        <Button disabled={loading} onClick={onGenerateTrip}>
+          {loading ? (
+            <AiOutlineLoading3Quarters size={20} className="animate-spin" />
+          ) : (
+            'Generate Trip'
+          )}
+        </Button>
       </div>
 
       <Dialog open={openDialog}>
