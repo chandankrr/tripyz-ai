@@ -1,14 +1,25 @@
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { AI_PROMT, budgetOptions, travelOptions } from '@/constants/options';
 import { chatSession } from '@/services/AIModal';
+import { useGoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
 import { useState } from 'react';
 import GooglePlacesAutocomplete from 'react-google-places-autocomplete';
+import { FcGoogle } from 'react-icons/fc';
 import { toast } from 'sonner';
 
 const CreateTrip = () => {
   const [place, setPlace] = useState();
   const [formData, setFormData] = useState([]);
+  const [openDialog, setOpenDialog] = useState(false);
 
   const handleInputChange = (name, value) => {
     setFormData({
@@ -33,6 +44,13 @@ const CreateTrip = () => {
       return;
     }
 
+    const user = localStorage.getItem('user');
+
+    if (!user) {
+      setOpenDialog(true);
+      return;
+    }
+
     const FINAL_PROMPT = AI_PROMT.replace(
       '{location}',
       formData?.location?.label
@@ -49,17 +67,40 @@ const CreateTrip = () => {
     console.log(result?.response?.text());
   };
 
+  const login = useGoogleLogin({
+    onSuccess: (res) => getUserProfile(res),
+    onError: (error) => console.log(error),
+  });
+
+  const getUserProfile = (tokenInfo) => {
+    axios
+      .get(
+        `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${tokenInfo?.access_token}`,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenInfo?.access_token}`,
+            Accept: 'Application/json',
+          },
+        }
+      )
+      .then((res) => {
+        localStorage.setItem('user', JSON.stringify(res.data));
+        setOpenDialog(false);
+        onGenerateTrip();
+      });
+  };
+
   return (
-    <div className="px-7 sm:px-10 md:px-32 lg:px-56 xl:px-72 mt-10">
-      <h1 className="font-bold text-3xl">Tell us your travel preferences</h1>
-      <p className="mt-3 text-gray-500 text-xl line-clamp-3">
+    <div className="mt-10 px-7 sm:px-10 md:px-32 lg:px-56 xl:px-72">
+      <h1 className="text-3xl font-bold">Tell us your travel preferences</h1>
+      <p className="mt-3 text-xl text-gray-500 line-clamp-3">
         Just provide some basic information, and our trip planner will generate
         a customized itinerary based on your preferences.
       </p>
 
-      <div className="mt-20 flex flex-col gap-7">
+      <div className="flex flex-col mt-20 gap-7">
         <div>
-          <h2 className="text-xl my-3 font-medium">
+          <h2 className="my-3 text-xl font-medium">
             What is destination of choice?
           </h2>
           <GooglePlacesAutocomplete
@@ -75,7 +116,7 @@ const CreateTrip = () => {
         </div>
 
         <div>
-          <h2 className="text-xl my-3 font-medium">
+          <h2 className="my-3 text-xl font-medium">
             How many days are you planning your trip?
           </h2>
           <Input
@@ -86,8 +127,8 @@ const CreateTrip = () => {
         </div>
 
         <div>
-          <h2 className="text-xl my-3 font-medium">What is your budget?</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-5 mt-5 ">
+          <h2 className="my-3 text-xl font-medium">What is your budget?</h2>
+          <div className="grid grid-cols-2 gap-5 mt-5 md:grid-cols-3 ">
             {budgetOptions.map((item) => (
               <div
                 className={`p-4 border rounded-lg hover:shadow-md cursor-pointer ${
@@ -97,7 +138,7 @@ const CreateTrip = () => {
                 onClick={() => handleInputChange('budget', item.title)}
               >
                 <h2 className="text-4xl">{item.icon}</h2>
-                <h2 className="font-bold text-lg">{item.title}</h2>
+                <h2 className="text-lg font-bold">{item.title}</h2>
                 <p className="text-sm text-gray-500">{item.desc}</p>
               </div>
             ))}
@@ -105,10 +146,10 @@ const CreateTrip = () => {
         </div>
 
         <div>
-          <h2 className="text-xl my-3 font-medium">
+          <h2 className="my-3 text-xl font-medium">
             Who do you plan on travelling with on your next adventure?
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-5 mt-5">
+          <div className="grid grid-cols-2 gap-5 mt-5 md:grid-cols-3">
             {travelOptions.map((item) => (
               <div
                 className={`p-4 border rounded-lg hover:shadow-md cursor-pointer ${
@@ -119,7 +160,7 @@ const CreateTrip = () => {
                 onClick={() => handleInputChange('noOfPeople', item.people)}
               >
                 <h2 className="text-4xl">{item.icon}</h2>
-                <h2 className="font-bold text-lg">{item.title}</h2>
+                <h2 className="text-lg font-bold">{item.title}</h2>
                 <p className="text-sm text-gray-500">{item.desc}</p>
               </div>
             ))}
@@ -127,9 +168,31 @@ const CreateTrip = () => {
         </div>
       </div>
 
-      <div className="my-10 justify-end flex">
+      <div className="flex justify-end my-10">
         <Button onClick={onGenerateTrip}>Generate Trip</Button>
       </div>
+
+      <Dialog open={openDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <h1 className="text-2xl font-medium">Tripyz AI</h1>
+            </DialogTitle>
+            <DialogDescription>
+              <h2 className="text-lg font-medium text-black">
+                Sign In With Google
+              </h2>
+              <p>Sign in to the App with Google Authentication</p>
+              <Button
+                className="flex items-center w-full gap-2 mt-5"
+                onClick={login}
+              >
+                <FcGoogle size={20} /> Sign In With Google
+              </Button>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
