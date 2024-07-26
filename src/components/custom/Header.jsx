@@ -1,13 +1,148 @@
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { googleLogout, useGoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
+import { useEffect, useState } from 'react';
+import { FcGoogle } from 'react-icons/fc';
 import { Button } from '../ui/button';
 
 const Header = () => {
+  const [openDialog, setOpenDialog] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem('user'));
+    if (storedUser) {
+      setUser(storedUser);
+    }
+  }, []);
+
+  const login = useGoogleLogin({
+    onSuccess: (res) => getUserProfile(res),
+    onError: (error) => console.log(error),
+  });
+
+  const getUserProfile = (tokenInfo) => {
+    axios
+      .get(
+        `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${tokenInfo?.access_token}`,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenInfo?.access_token}`,
+            Accept: 'Application/json',
+          },
+        }
+      )
+      .then((res) => {
+        localStorage.setItem('user', JSON.stringify(res.data));
+        setUser(res.data);
+        setOpenDialog(false);
+      });
+  };
+
+  const handleLogout = () => {
+    googleLogout();
+    localStorage.clear();
+    setUser(null);
+  };
+
   return (
-    <div className="p-3 px-7 shadow-sm flex justify-between items-center">
-      <h1 className="font-medium text-3xl">Tripyz AI</h1>
+    <div className="flex items-center justify-between p-3 shadow-sm px-7">
+      <a href="/">
+        <h1 className="text-3xl font-medium">Tripyz AI</h1>
+      </a>
 
       <div>
-        <Button>Sign In</Button>
+        {user ? (
+          <div className="flex items-center gap-3">
+            <a href="/create-trip">
+              <Button
+                className="hidden rounded-full md:block"
+                variant="outline"
+              >
+                + Create Trip
+              </Button>
+            </a>
+
+            <a href="/my-trips">
+              <Button
+                className="hidden rounded-full md:block"
+                variant="outline"
+              >
+                My Tips
+              </Button>
+            </a>
+
+            <Popover>
+              <PopoverTrigger>
+                <img
+                  className="h-[35px] w-[35px] rounded-full"
+                  src={user?.picture}
+                  alt={user?.name}
+                />
+              </PopoverTrigger>
+              <PopoverContent>
+                <div className="flex flex-col gap-2">
+                  <a href="/create-trip">
+                    <h2 className="px-3 py-1 border rounded-md cursor-pointer md:hidden">
+                      Create Trip
+                    </h2>
+                  </a>
+
+                  <a href="/my-trips">
+                    <h2 className="px-3 py-1 border rounded-md cursor-pointer md:hidden">
+                      My Tips
+                    </h2>
+                  </a>
+
+                  <a href="/">
+                    <h2
+                      onClick={handleLogout}
+                      className="px-3 py-1 text-red-600 border border-red-600 rounded-md cursor-pointer"
+                    >
+                      Logout
+                    </h2>
+                  </a>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        ) : (
+          <Button onClick={() => setOpenDialog(true)}>Sign In</Button>
+        )}
       </div>
+
+      <Dialog open={openDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <h1 className="text-2xl font-medium">Tripyz AI</h1>
+            </DialogTitle>
+            <DialogDescription>
+              <h2 className="text-lg font-medium text-black">
+                Sign In With Google
+              </h2>
+              <p>Sign in to the App with Google Authentication</p>
+              <Button
+                className="flex items-center w-full gap-2 mt-5"
+                onClick={login}
+              >
+                <FcGoogle size={20} /> Sign In With Google
+              </Button>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
