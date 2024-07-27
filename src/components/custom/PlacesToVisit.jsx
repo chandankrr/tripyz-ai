@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import PlaceCardItem from './PlaceCardItem';
 
 const PlacesToVisit = ({ trip }) => {
