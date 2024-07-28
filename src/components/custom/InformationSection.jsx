@@ -1,8 +1,21 @@
-import PropTypes from 'prop-types';
 import { IoIosShareAlt } from 'react-icons/io';
+import { toast } from 'sonner';
 import { Button } from '../ui/button';
 
 const InformationSection = ({ trip }) => {
+  const copyToClipboard = () => {
+    const currentUrl = window.location.href;
+    navigator.clipboard
+      .writeText(currentUrl)
+      .then(() => {
+        toast('Link copied to clipboard!');
+      })
+      .catch((err) => {
+        toast('Failed to copy the link!');
+        console.error('Failed to copy the link: ', err);
+      });
+  };
+
   return (
     <div>
       <img
@@ -31,7 +44,7 @@ const InformationSection = ({ trip }) => {
             </h2>
           </div>
 
-          <Button>
+          <Button onClick={copyToClipboard}>
             <IoIosShareAlt size={20} />
           </Button>
         </div>
