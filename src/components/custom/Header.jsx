@@ -10,51 +10,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { googleLogout, useGoogleLogin } from '@react-oauth/google';
-import axios from 'axios';
+import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState } from 'react';
 import { FcGoogle } from 'react-icons/fc';
 import { Button } from '../ui/button';
 
 const Header = () => {
+  const { user, login, logout } = useAuth();
   const [openDialog, setOpenDialog] = useState(false);
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem('user'));
-    if (storedUser) {
-      setUser(storedUser);
-    }
-  }, []);
-
-  const login = useGoogleLogin({
-    onSuccess: (res) => getUserProfile(res),
-    onError: (error) => console.log(error),
-  });
-
-  const getUserProfile = (tokenInfo) => {
-    axios
-      .get(
-        `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${tokenInfo?.access_token}`,
-        {
-          headers: {
-            Authorization: `Bearer ${tokenInfo?.access_token}`,
-            Accept: 'Application/json',
-          },
-        }
-      )
-      .then((res) => {
-        localStorage.setItem('user', JSON.stringify(res.data));
-        setUser(res.data);
-        setOpenDialog(false);
-      });
-  };
-
-  const handleLogout = () => {
-    googleLogout();
-    localStorage.clear();
-    setUser(null);
-  };
 
   return (
     <div className="flex items-center justify-between p-3 shadow-sm px-7">
@@ -107,7 +70,7 @@ const Header = () => {
 
                   <a href="/">
                     <h2
-                      onClick={handleLogout}
+                      onClick={logout}
                       className="px-3 py-1 text-red-600 border border-red-600 rounded-md cursor-pointer"
                     >
                       Logout
@@ -122,7 +85,7 @@ const Header = () => {
         )}
       </div>
 
-      <Dialog open={openDialog}>
+      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -135,7 +98,10 @@ const Header = () => {
               <p>Sign in to the App with Google Authentication</p>
               <Button
                 className="flex items-center w-full gap-2 mt-5"
-                onClick={login}
+                onClick={() => {
+                  login();
+                  setOpenDialog(false);
+                }}
               >
                 <FcGoogle size={20} /> Sign In With Google
               </Button>

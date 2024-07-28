@@ -8,12 +8,11 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { AI_PROMT, budgetOptions, travelOptions } from '@/constants/options';
+import { useAuth } from '@/context/AuthContext';
 import { chatSession } from '@/services/AIModal';
 import { db } from '@/services/firebaseConfig';
-import { useGoogleLogin } from '@react-oauth/google';
-import axios from 'axios';
 import { collection, doc, setDoc } from 'firebase/firestore';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import GooglePlacesAutocomplete from 'react-google-places-autocomplete';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { FcGoogle } from 'react-icons/fc';
@@ -22,11 +21,26 @@ import { toast } from 'sonner';
 
 const CreateTrip = () => {
   const [place, setPlace] = useState();
-  const [formData, setFormData] = useState([]);
+  const [formData, setFormData] = useState({});
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const { user, login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      setOpenDialog(false);
+      const pendingTripData = JSON.parse(
+        localStorage.getItem('pendingTripData')
+      );
+      if (pendingTripData) {
+        setFormData(pendingTripData);
+        localStorage.removeItem('pendingTripData');
+        onGenerateTrip(pendingTripData);
+      }
+    }
+  }, [user]);
 
   const handleInputChange = (name, value) => {
     setFormData({
@@ -39,8 +53,6 @@ const CreateTrip = () => {
     setLoading(true);
 
     try {
-      const user = JSON.parse(localStorage.getItem('user'));
-
       const docRef = doc(collection(db, 'AiTrips'));
       await setDoc(docRef, {
         userSelection: formData,
@@ -49,31 +61,35 @@ const CreateTrip = () => {
         id: docRef.id,
       });
 
-      setLoading(false);
       navigate('/view-trip/' + docRef.id);
     } catch (error) {
       console.error('Error saving trip: ', error);
+      toast('Error saving trip. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
 
-  const onGenerateTrip = async () => {
-    if (formData?.noOfDays <= 0) {
+  const onGenerateTrip = async (data = formData) => {
+    if (data?.noOfDays <= 0) {
       toast('Number of days must be greater than zero');
       return;
     }
 
-    if (formData?.noOfDays > 7) {
+    if (data?.noOfDays > 7) {
       toast('Maximum days for a trip cannot exceed one week');
       return;
     }
 
-    if (!formData?.location || !formData?.budget || !formData?.noOfPeople) {
+    if (
+      !data?.location ||
+      !data?.budget ||
+      !data?.noOfPeople ||
+      !data?.noOfDays
+    ) {
       toast('Please fill all details');
       return;
     }
-
-    const user = localStorage.getItem('user');
 
     if (!user) {
       setOpenDialog(true);
@@ -82,22 +98,14 @@ const CreateTrip = () => {
 
     setLoading(true);
 
-    const FINAL_PROMPT = AI_PROMT.replace(
-      '{location}',
-      formData?.location?.label
-    )
-      .replace('{totalDays}', formData?.noOfDays)
-      .replace('{totalPeople}', formData?.noOfPeople)
-      .replace('{budget}', formData?.budget)
-      .replace('{totalDays}', formData?.noOfDays);
-
-    console.log(FINAL_PROMPT);
+    const FINAL_PROMPT = AI_PROMT.replace('{location}', data?.location?.label)
+      .replace('{totalDays}', data?.noOfDays)
+      .replace('{totalPeople}', data?.noOfPeople)
+      .replace('{budget}', data?.budget)
+      .replace('{totalDays}', data?.noOfDays);
 
     try {
       const result = await chatSession.sendMessage(FINAL_PROMPT);
-
-      console.log(result?.response?.text());
-      setLoading(false);
       saveAiTrip(result?.response?.text());
     } catch (error) {
       console.error('Error generating trip:', error);
@@ -105,29 +113,6 @@ const CreateTrip = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const login = useGoogleLogin({
-    onSuccess: (res) => getUserProfile(res),
-    onError: (error) => console.log(error),
-  });
-
-  const getUserProfile = (tokenInfo) => {
-    axios
-      .get(
-        `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${tokenInfo?.access_token}`,
-        {
-          headers: {
-            Authorization: `Bearer ${tokenInfo?.access_token}`,
-            Accept: 'Application/json',
-          },
-        }
-      )
-      .then((res) => {
-        localStorage.setItem('user', JSON.stringify(res.data));
-        setOpenDialog(false);
-        onGenerateTrip();
-      });
   };
 
   return (
@@ -209,7 +194,7 @@ const CreateTrip = () => {
       </div>
 
       <div className="flex justify-end my-10">
-        <Button disabled={loading} onClick={onGenerateTrip}>
+        <Button disabled={loading} onClick={() => onGenerateTrip()}>
           {loading ? (
             <AiOutlineLoading3Quarters size={20} className="animate-spin" />
           ) : (
@@ -218,7 +203,7 @@ const CreateTrip = () => {
         </Button>
       </div>
 
-      <Dialog open={openDialog}>
+      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -231,7 +216,13 @@ const CreateTrip = () => {
               <p>Sign in to the App with Google Authentication</p>
               <Button
                 className="flex items-center w-full gap-2 mt-5"
-                onClick={login}
+                onClick={() => {
+                  localStorage.setItem(
+                    'pendingTripData',
+                    JSON.stringify(formData)
+                  );
+                  login();
+                }}
               >
                 <FcGoogle size={20} /> Sign In With Google
               </Button>
