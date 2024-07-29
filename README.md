@@ -1,4 +1,4 @@
-# Tripyz AI 🗺️ – Smart AI based Trip Planner Web Application [Live](https://tripyz-ai.vercel.app/)
+# Tripyz AI 🗺️ – Smart AI based Trip Planner Web Application [[Live]](https://tripyz-ai.vercel.app/)
 
 
 Developed Tripyz AI, a smart AI-based trip planner web application. Implemented OAuth Sign-in with Google for authentication. Integrated Google Gemini AI, Google Maps, and Places API for enhanced trip planning. Enabled users to plan trips day-by-day with optimal timing and share itineraries with friends.
