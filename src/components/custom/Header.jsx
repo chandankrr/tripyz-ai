@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/popover';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState } from 'react';
+import { FaUserCircle } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
 import { Button } from '../ui/button';
 
@@ -48,11 +49,15 @@ const Header = () => {
 
             <Popover>
               <PopoverTrigger>
-                <img
-                  className="h-[35px] w-[35px] rounded-full"
-                  src={user?.picture}
-                  alt={user?.name}
-                />
+                {user?.picture ? (
+                  <img
+                    className="h-[35px] w-[35px] rounded-full"
+                    src={user?.picture}
+                    alt={user?.name}
+                  />
+                ) : (
+                  <FaUserCircle size={32} />
+                )}
               </PopoverTrigger>
               <PopoverContent>
                 <div className="flex flex-col gap-2">
