@@ -1,8 +1,12 @@
+import { getPlaceDetails, PHOTO_REF_URL } from '@/services/globalApi';
+import { useEffect, useState } from 'react';
 import { IoIosShareAlt } from 'react-icons/io';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 
 const InformationSection = ({ trip }) => {
+  const [imgUrl, setImgUrl] = useState();
+
   const copyToClipboard = () => {
     const currentUrl = window.location.href;
     navigator.clipboard
@@ -16,11 +20,31 @@ const InformationSection = ({ trip }) => {
       });
   };
 
+  useEffect(() => {
+    trip && getPlacePhoto();
+  }, [trip]);
+
+  const getPlacePhoto = async () => {
+    const data = {
+      textQuery:
+        'famous tourist place of ' + trip?.userSelection?.location?.label,
+    };
+
+    const result = await getPlaceDetails(data).then((res) => {
+      const photoUrl = PHOTO_REF_URL.replace(
+        '{NAME}',
+        res?.data?.places[0]?.photos[0]?.name
+      );
+
+      setImgUrl(photoUrl);
+    });
+  };
+
   return (
     <div>
       <img
         className="w-full h-[340px] object-cover rounded-xl"
-        src="/placeholder.jpg"
+        src={imgUrl}
         alt="trip info"
       />
 

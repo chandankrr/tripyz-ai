@@ -1,6 +1,29 @@
+import { getPlaceDetails, PHOTO_REF_URL } from '@/services/globalApi';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const PlaceCardItem = ({ places, location }) => {
+  const [imgUrl, setImgUrl] = useState();
+
+  useEffect(() => {
+    places && getPlacePhoto();
+  }, [places]);
+
+  const getPlacePhoto = async () => {
+    const data = {
+      textQuery: places?.place + ',' + location,
+    };
+
+    const result = await getPlaceDetails(data).then((res) => {
+      const photoUrl = PHOTO_REF_URL.replace(
+        '{NAME}',
+        res?.data?.places[0]?.photos[7]?.name
+      );
+
+      setImgUrl(photoUrl);
+    });
+  };
+
   return (
     <Link
       to={
@@ -14,7 +37,7 @@ const PlaceCardItem = ({ places, location }) => {
       <div className="flex flex-col gap-5 p-3 mt-2 transition-all border cursor-pointer md:flex-row rounded-xl hover:scale-105 hover:shadow-md">
         <img
           className=" w-full object-cover md:w-[130px] h-[130px] rounded-xl"
-          src="/placeholder.jpg"
+          src={imgUrl ? imgUrl : '/place-placeholder.jpg'}
           alt={places?.place}
         />
 
